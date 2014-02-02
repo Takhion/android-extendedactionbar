@@ -3,21 +3,26 @@ package me.eugeniomarletti.extendedactionbar;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.widget.FrameLayout;
 
 /**
  * Example {@code Activity} to show how to automatically eliminate overdraw caused by the window background.
- * <p>
- * Uses the attributes {@link me.eugeniomarletti.extendedactionbar.R.drawable#window_background} and
- * {@link me.eugeniomarletti.extendedactionbar.R.drawable#statusbar_background} (if supported) to automatically apply
- * the correct backgrounds.
- * @see
+ * <p/>
+ * If {@link Build.VERSION#SDK_INT} is >= 19, automatically extracts the required drawables from the window background
+ * which must be a {@link android.graphics.drawable.LayerDrawable} with at least 2 children with the following
+ * {@code android:id}:
+ * <ul>
+ * <li>{@link R.id#statusbar_background}</li>
+ * <li>{@link R.id#window_background}</li>
+ * </ul>
  * </p>
  */
 public class ExtendedActionBarActivity extends Activity
@@ -29,18 +34,22 @@ public class ExtendedActionBarActivity extends Activity
         setContentView(R.layout.activity_test);
 
         final Resources res = getResources();
+        final boolean isKitkat = Build.VERSION.SDK_INT >= 19;
 
         // replace window background to reduce overdraw
+        final Window window = getWindow();
         final ViewGroup contentView = (ViewGroup)findViewById(android.R.id.content);
         final View content = contentView.getChildAt(0);
-        final Drawable windowBackground = res.getDrawable(R.drawable.window_background);
-        if (windowBackground == null)
-            throw new IllegalStateException("The attribute R.drawable.window_background must be set.");
-        getWindow().setBackgroundDrawable(null);
+        final Drawable extendedWindowBackground = window.getDecorView().getBackground();
+        final Drawable windowBackground = !isKitkat ? extendedWindowBackground
+                                                    : getWindowBackgroundLayer(extendedWindowBackground,
+                                                                               R.id.window_background,
+                                                                               "window_background");
+        window.setBackgroundDrawable(null);
         setBackground(content, windowBackground);
 
         // add statusbar background
-        if (Build.VERSION.SDK_INT >= 19)
+        if (isKitkat)
         {
             // check if translucent bars are enabled
             final int config_enableTranslucentDecor_id =
@@ -67,9 +76,9 @@ public class ExtendedActionBarActivity extends Activity
                             else vto.removeOnGlobalLayoutListener(this);
 
                             // create and add statusbar background view
-                            final Drawable statusBarBackground = res.getDrawable(R.drawable.statusbar_background);
-                            if (statusBarBackground == null) throw new IllegalStateException(
-                                    "The attribute R.drawable.statusbar_background must be set.");
+                            final Drawable statusBarBackground = getWindowBackgroundLayer(extendedWindowBackground,
+                                                                                          R.id.statusbar_background,
+                                                                                          "statusbar_background");
                             final int statusBarHeight =
                                     ((ViewGroup.MarginLayoutParams)actionBarContainer.getLayoutParams()).topMargin;
                             final View statusBarView = new View(ExtendedActionBarActivity.this);
@@ -119,5 +128,25 @@ public class ExtendedActionBarActivity extends Activity
     {
         if (Build.VERSION.SDK_INT < 16) view.setBackgroundDrawable(background);
         else view.setBackground(background);
+    }
+
+    /**
+     * Extracts the requested layer from the window drawable or throws an {@link java.lang.IllegalAccessException} if
+     * the window drawable is not a {@link android.graphics.drawable.LayerDrawable} or the requested layer is missing.
+     *
+     * @param windowBackground the window background.
+     * @param layerId          the layer id like {@code R.id.statusbar_background}.
+     * @param layerIdName      the layer id name like "statusbar_background".
+     *
+     * @return The requested layer.
+     */
+    private static Drawable getWindowBackgroundLayer(Drawable windowBackground, int layerId, String layerIdName)
+    {
+        if (!(windowBackground instanceof LayerDrawable))
+            throw new IllegalStateException("Window background must be a LayerDrawable.");
+        final Drawable layer = ((LayerDrawable)windowBackground).findDrawableByLayerId(layerId);
+        if (layer == null) throw new IllegalStateException(
+                String.format("Window background must have layer with android:id=\"@+id/%s\"", layerIdName));
+        return layer;
     }
 }

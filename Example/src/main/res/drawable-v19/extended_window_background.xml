@@ -26,10 +26,13 @@
 
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:drawable="@drawable/statusbar_background"/>
+    <item
+        android:id="@+id/statusbar_background"
+        android:drawable="@drawable/statusbar_background"/>
 
     <!-- should use @android:dimen/status_bar_height but it's not public... WHY GOOGLE?! -->
     <item
+        android:id="@+id/window_background"
         android:top="25dp"
         android:drawable="@drawable/window_background"/>
 
