@@ -1,4 +1,5 @@
-Extended ActionBar
+[![AndroidLibs](https://img.shields.io/badge/AndroidLibs-android%20extendedactionbar-brightgreen.svg?style=flat)](https://www.android-libs.com/lib/android-extendedactionbar?utm_source=github-badge&utm_medium=github-badge&utm_campaign=github-badge)
+			Extended ActionBar
 ===
 
 The problem:
